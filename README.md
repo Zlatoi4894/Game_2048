@@ -13,4 +13,4 @@
 
 ## ТРЕБОВАНИЯ:
 - Python 3.9+
-- Библиотеки: customtkinter
+- Библиотеки: customtkinter, tkinter
