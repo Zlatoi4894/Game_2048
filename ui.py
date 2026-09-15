@@ -36,7 +36,6 @@ class UI(ctk.CTk):
         self.animating = False
         self.animation_duration = 150
         self.animation_start_time = None
-        self.animation_after_id = None
         self.animation_tiles = []
 
         self.game_over = False
@@ -100,7 +99,7 @@ class UI(ctk.CTk):
         )
 
         self.game_area.place(
-            relx=0.51,
+            relx=0.5,
             rely=0.5,
             anchor="center"
         )
@@ -124,17 +123,17 @@ class UI(ctk.CTk):
         # Левая часть header
         # ----------------------------------------------------------
 
-        self.title_frame = ctk.CTkFrame(
+        self.header_left = ctk.CTkFrame(
             self.header,
             fg_color="transparent"
         )
 
-        self.title_frame.pack(
+        self.header_left.pack(
             side="left"
         )
 
         self.title_label = ctk.CTkLabel(
-            self.title_frame,
+            self.header_left,
             text="2048",
             font=ctk.CTkFont(
                 size=48,
@@ -144,17 +143,19 @@ class UI(ctk.CTk):
         )
 
         self.title_label.pack(
+            side="top",
             anchor="w"
         )
 
         self.subtitle_label = ctk.CTkLabel(
-            self.title_frame,
+            self.header_left,
             text="Соединяйте числа и доберитесь до 2048!",
             font=ctk.CTkFont(size=14),
             text_color="#776e65"
         )
 
         self.subtitle_label.pack(
+            side="top",
             anchor="w",
             pady=(2, 0)
         )
@@ -260,12 +261,8 @@ class UI(ctk.CTk):
         # ФОНОВЫЕ КЛЕТКИ
         # ==========================================================
 
-        self.background_cells = []
-
         for y in range(self.board_size):
-            row = []
-
-            for x in range(self.board_size):
+           for x in range(self.board_size):
 
                 x1 = self.cell_x(x)
                 y1 = self.cell_y(y)
@@ -273,7 +270,7 @@ class UI(ctk.CTk):
                 x2 = x1 + self.cell_size
                 y2 = y1 + self.cell_size
 
-                cell = self.board.create_rectangle(
+                self.board.create_rectangle(
                     x1,
                     y1,
                     x2,
@@ -281,10 +278,6 @@ class UI(ctk.CTk):
                     fill=self.cell_colors[0],
                     outline=""
                 )
-
-                row.append(cell)
-
-            self.background_cells.append(row)
 
         # ==========================================================
         # ТАЙЛЫ
@@ -519,6 +512,7 @@ class UI(ctk.CTk):
 
         self.board.coords(rectangle, x, y, x + self.cell_size, y + self.cell_size)
 
+        # Так как текст позиционируется в центре
         self.board.coords(text, x + self.cell_size / 2, y + self.cell_size / 2)
 
     def configure_tile(self, tile, value):
@@ -634,7 +628,7 @@ class UI(ctk.CTk):
             self.move_tile(animation["tile"], x, y)
 
         if progress < 1.0:
-            self.animation_after_id = self.after(8, self.animate_tiles)
+            self.after(8, self.animate_tiles)
 
             return
 
@@ -660,15 +654,8 @@ class UI(ctk.CTk):
 
                 self.configure_tile(tile, value)
 
-                self.move_tile(tile, self.cell_x(position[1]), self.cell_y(position[0]))
-
                 self.lift_tile(tile)
-
             else:
-                survivor = new_tiles[position]
-
-                self.configure_tile(survivor, value)
-
                 self.hide_tile(tile)
 
         for position, tile in self.tiles.items():
@@ -677,6 +664,25 @@ class UI(ctk.CTk):
 
         self.tiles = new_tiles
 
+        self.spawn_tile()
+
+        self.check_is_game_over()
+
+        self.animation_tiles.clear()
+
+        self.animating = False
+        self.animation_start_time = None
+
+    def get_free_tile(self):
+        used_tiles = set(self.tiles.values())
+
+        for tile in range(len(self.tile_widgets)):
+            if tile not in used_tiles:
+                return tile
+
+        raise RuntimeError("Не найден свободный тайл.")
+
+    def spawn_tile(self):
         spawned = self.logic.spawn_tile()
 
         if spawned is not None:
@@ -692,27 +698,13 @@ class UI(ctk.CTk):
 
             self.lift_tile(tile)
 
+    def check_is_game_over(self):
         if self.logic.is_game_over():
             self.game_over = True
 
             self.game_over_label.configure(text="Игра окончена!")
 
             self.game_over_label.lift()
-
-        self.animation_tiles.clear()
-
-        self.animating = False
-        self.animation_start_time = None
-        self.animation_after_id = None
-
-    def get_free_tile(self):
-        used_tiles = set(self.tiles.values())
-
-        for tile in range(len(self.tile_widgets)):
-            if tile not in used_tiles:
-                return tile
-
-        raise RuntimeError("Не найден свободный тайл.")
 
     def update_board(self):
         self.tiles.clear()
